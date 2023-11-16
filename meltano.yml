@@ -1,0 +1,28 @@
+version: 1
+send_anonymous_usage_stats: true
+project_id: tap-aircall
+default_environment: test
+environments:
+- name: test
+plugins:
+  extractors:
+  - name: tap-aircall
+    namespace: tap_aircall
+    pip_url: -e .
+    capabilities:
+    - state
+    - catalog
+    - discover
+    - about
+    - stream-maps
+    config:
+      start_date: '2019-11-01T00:00:00Z'
+      api_key: 7d5fe7ebf2835d7ee5f3009f4302cfb3
+      api_token: 69a8404ac64b8a16322decb3a8f1e82b
+    select:
+      - tags.*
+
+  loaders:
+  - name: target-jsonl
+    variant: andyh1203
+    pip_url: target-jsonl
