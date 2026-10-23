@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Any, Callable, Iterable
 import base64
@@ -15,15 +14,9 @@ import requests
 from requests import Response
 from singer_sdk.authenticators import BasicAuthenticator
 from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.pagination import BasePageNumberPaginator  # noqa: TCH002
 from singer_sdk.streams import RESTStream
 from singer_sdk.pagination import BaseHATEOASPaginator
 
-
-if sys.version_info >= (3, 8):
-    from functools import cached_property
-else:
-    from cached_property import cached_property
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
@@ -48,8 +41,8 @@ class AircallStream(RESTStream):
     @property
     def authenticator(self):
         """Return the authenticator."""
-        return BasicAuthenticator.create_for_stream(
-            self, username=self.config.get("api_key"), password=self.config.get("api_token")
+        return BasicAuthenticator(
+            username=self.config.get("api_key"), password=self.config.get("api_token")
         )
 
     def get_url_params(self, context, next_page_token):
