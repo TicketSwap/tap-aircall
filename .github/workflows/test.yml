@@ -1,32 +1,82 @@
-### A CI workflow template that runs linting and python testing
-### TODO: Modify as needed or as desired.
-
 name: Test tap-aircall
 
-on: pull_request
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/test.yml
+      - tap_aircall/**
+      - tests/**
+      - pyproject.toml
+      - poetry.lock
+  pull_request:
+    paths:
+      - .github/workflows/test.yml
+      - tap_aircall/**
+      - tests/**
+      - pyproject.toml
+      - poetry.lock
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  FORCE_COLOR: 1
+
+permissions:
+  contents: read
 
 jobs:
-  pytest:
+  build-package:
+    name: Build & verify package
     runs-on: ubuntu-latest
-    env:
-      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-      TAP_AIRCALL_API_KEY: ${{secrets.TAP_AIRCALL_API_KEY}}
-      TAP_AIRCALL_API_TOKEN: ${{secrets.TAP_AIRCALL_API_TOKEN}}
+    outputs:
+      supported-python-versions: ${{ steps.baipp.outputs.supported_python_classifiers_json_array }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: hynek/build-and-inspect-python-package@67230f7b8410ae0052b39c1efc89d89fff43ff10 # v3.0.2
+        id: baipp
+
+  pytest:
+    name: Test
+    needs: [build-package]
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.11"]
+        python-version: ${{ fromJson(needs.build-package.outputs.supported-python-versions) }}
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install Poetry
-      run: |
-        pip install poetry
-    - name: Install dependencies
-      run: |
-        poetry install
-    - name: Test with pytest
-      run: |
-        poetry run pytest
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+      - name: Run pytest
+        env:
+          TAP_AIRCALL_API_KEY: ${{ secrets.TAP_AIRCALL_API_KEY }}
+          TAP_AIRCALL_API_TOKEN: ${{ secrets.TAP_AIRCALL_API_TOKEN }}
+        run: poetry run pytest
+
+  typing:
+    name: Type Checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Run mypy
+        run: |
+          pip install pre-commit
+          pre-commit run mypy --all-files
