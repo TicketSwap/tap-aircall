@@ -2,28 +2,25 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any, Callable, Iterable
-import base64
-from urllib.parse import urlencode
 from datetime import datetime
-from urllib.parse import parse_qsl
-
+from pathlib import Path
+from typing import Any, Callable
+from urllib.parse import ParseResult, parse_qsl
 
 import requests
-from requests import Response
 from singer_sdk.authenticators import BasicAuthenticator
-from singer_sdk.helpers.jsonpath import extract_jsonpath
-from singer_sdk.streams import RESTStream
 from singer_sdk.pagination import BaseHATEOASPaginator
-
+from singer_sdk.streams import RESTStream
 
 _Auth = Callable[[requests.PreparedRequest], requests.PreparedRequest]
 SCHEMAS_DIR = Path(__file__).parent / Path("./schemas")
 
 
 class MyPaginator(BaseHATEOASPaginator):
-    def get_next_url(self, response):
+    """Paginator that follows Aircall's next_page_link."""
+
+    def get_next_url(self, response: requests.Response) -> str | None:
+        """Return the next page URL from the response metadata."""
         data = response.json()
         return data.get("meta").get("next_page_link")
 
@@ -39,19 +36,29 @@ class AircallStream(RESTStream):
     records_jsonpath = "$[*]"  # Or override `parse_response`.
 
     @property
-    def authenticator(self):
+    def authenticator(self) -> BasicAuthenticator:
         """Return the authenticator."""
         return BasicAuthenticator(
-            username=self.config.get("api_key"), password=self.config.get("api_token")
+            username=self.config.get("api_key"),
+            password=self.config.get("api_token"),
         )
 
-    def get_url_params(self, context, next_page_token):
-        params = {"per_page": 50}
+    def get_url_params(
+        self,
+        context: dict | None,
+        next_page_token: ParseResult | None,
+    ) -> dict[str, Any]:
+        """Return the URL params for the request."""
+        params: dict[str, Any] = {"per_page": 50}
         start_date = self.get_starting_replication_key_value(context)
 
         if start_date:
-            if type(start_date) == str:
-                start_date = int(datetime.timestamp(datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%SZ")))
+            if isinstance(start_date, str):
+                start_date = int(
+                    datetime.timestamp(
+                        datetime.strptime(start_date, "%Y-%m-%dT%H:%M:%S%z"),
+                    ),
+                )
             params.update({"from": start_date})
 
         if next_page_token:
