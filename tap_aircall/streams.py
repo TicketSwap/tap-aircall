@@ -3,26 +3,24 @@
 from __future__ import annotations
 
 import typing as t
-import requests
-from pathlib import Path
-from typing import Iterable
 
-from singer_sdk import typing as th  # JSON Schema typing helpers
 from singer_sdk.typing import (
-    IntegerType,
-    StringType,
-    DateTimeType,
-    ObjectType,
-    Property,
-    PropertiesList,
     ArrayType,
     BooleanType,
+    DateTimeType,
+    IntegerType,
+    ObjectType,
+    PropertiesList,
+    Property,
+    StringType,
 )
 
 from tap_aircall.client import AircallStream
 
 
 class CallsStream(AircallStream):
+    """Aircall calls stream."""
+
     name = "calls"
     path = "/calls"
     primary_keys: t.ClassVar[list[str]] = ["id"]
@@ -55,6 +53,8 @@ class CallsStream(AircallStream):
 
 
 class UsersStream(AircallStream):
+    """Aircall users stream."""
+
     name = "users"
     path = "/users"
     primary_keys: t.ClassVar[list[str]] = ["id"]
@@ -75,6 +75,8 @@ class UsersStream(AircallStream):
 
 
 class NumbersStream(AircallStream):
+    """Aircall numbers stream."""
+
     name = "numbers"
     path = "/numbers"
     primary_keys: t.ClassVar[list[str]] = ["id"]
@@ -95,6 +97,8 @@ class NumbersStream(AircallStream):
 
 
 class ContactsStream(AircallStream):
+    """Aircall contacts stream."""
+
     name = "contacts"
     path = "/contacts"
     primary_keys: t.ClassVar[list[str]] = ["id"]
@@ -112,6 +116,8 @@ class ContactsStream(AircallStream):
 
 
 class TagsStream(AircallStream):
+    """Aircall tags stream."""
+
     name = "tags"
     path = "/tags"
     primary_keys: t.ClassVar[list[str]] = ["id"]
